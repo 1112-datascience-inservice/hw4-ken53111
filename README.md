@@ -2,7 +2,7 @@
 
 #### Name: 許廷瑋
 #### Student ID: 111971021
-#### ShinyApps link: https://kenworks.shinyapps.io/nccu_ds2023_hw4_111971021/
+#### ShinyApps link: https://kenworks.shinyapps.io/NCCU_DS2023_hw4_111971021/
 
 ## Description
 
