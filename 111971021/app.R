@@ -10,13 +10,13 @@ cur_y_axis <- "pc2"
 
 # Define UI for app that draws a histogram ----
 ui <- fluidPage(
-  
+
   navbarPage(
     title = "許廷瑋的PCA作業",
     tabPanel("PCA",
              titlePanel("PCA"),
              sidebarLayout(
-               
+
                # Sidebar panel for inputs ----
                sidebarPanel(
                  radioButtons("pca_x_radio", h3("X axis"),
@@ -29,18 +29,18 @@ ui <- fluidPage(
                  checkboxInput("show_pca_point", "show points", value=TRUE),
                  checkboxInput("show_pca_ellipse", "show ellipses", value=TRUE)
                ),
-               
+
                # Main panel for displaying outputs ----
                mainPanel(
-                 
+
                  plotOutput(outputId = "distPcaPlot", width = "800px", height = "700px")
-                 
+
                )
              )),
     tabPanel("CA",
              titlePanel("CA"),
              sidebarLayout(
-               
+
                # Sidebar panel for inputs ----
                sidebarPanel(
                  sliderInput(inputId = "point_num",
@@ -52,12 +52,12 @@ ui <- fluidPage(
                  checkboxInput("show_ca_point", "show points", value=TRUE),
                  checkboxInput("show_ca_number", "show numbers", value=TRUE)
                ),
-               
+
                # Main panel for displaying outputs ----
                mainPanel(
-                 
+
                  plotOutput(outputId = "distCaPlot", width = "800px", height = "700px")
-                 
+
                )
              )),
     tabPanel("作者",
@@ -79,7 +79,7 @@ server <- function(input, output, session) {
   update_pca_plot <- function() {
     log.ir <- log(iris[, 1:4])
     ir.species <- iris[, 5]
-    
+
     pca <- prcomp(log.ir, center=TRUE, scale.=TRUE)
     x_axis <- switch(cur_x_axis,
                      "pc1"=1,
@@ -110,7 +110,7 @@ server <- function(input, output, session) {
     # Display plot
     return(p1)
   }
-  
+
   output$distPcaPlot <- renderPlot({
     update_pca_plot()
   })
@@ -125,7 +125,7 @@ server <- function(input, output, session) {
       update_pca_plot()
     })
   })
-  
+
   observeEvent(input$pca_y_radio, {
     if(input$pca_y_radio == cur_x_axis) {
       updateRadioButtons(session, "pca_x_radio", selected = cur_y_axis)
@@ -136,7 +136,7 @@ server <- function(input, output, session) {
       update_pca_plot()
     })
   })
-  
+
   ## CA
   update_ca_plot <- function() {
     if (input$show_ca_point == TRUE) {
@@ -157,7 +157,7 @@ server <- function(input, output, session) {
 
     res.ca <- CA(subset(iris[1:input$point_num, 1:4]))
     p2 <- fviz_ca_biplot(res.ca, repel=TRUE, alpha=alpha, geom=geom, arrows=arrows, title="")
-    return(p2) 
+    return(p2)
   }
 
   output$distCaPlot <- renderPlot({
