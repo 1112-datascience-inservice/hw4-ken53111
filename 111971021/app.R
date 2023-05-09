@@ -4,6 +4,7 @@ library(ggbiplot)
 library(FactoMineR)
 library(factoextra)
 library(gridExtra)
+library(DT)
 
 cur_x_axis <- "pc1"
 cur_y_axis <- "pc2"
@@ -32,9 +33,13 @@ ui <- fluidPage(
 
                # Main panel for displaying outputs ----
                mainPanel(
-
-                 plotOutput(outputId = "distPcaPlot", width = "800px", height = "700px")
-
+                 tabsetPanel(
+                   tabPanel("Plot", plotOutput(outputId = "distPcaPlot", width = "800px", height = "700px")),
+                   tabPanel("Rotation Table", tableOutput(outputId="rotationTable")),
+                   tabPanel("Center Table", tableOutput(outputId="centerTable")),
+                   tabPanel("Sdev Table", tableOutput(outputId="sdevTable")),
+                   tabPanel("Scale Table", tableOutput(outputId="scaleTable")),
+                   tabPanel("X Table", DT::dataTableOutput("xTable")))
                )
              )),
     tabPanel("CA",
@@ -55,11 +60,30 @@ ui <- fluidPage(
 
                # Main panel for displaying outputs ----
                mainPanel(
-
-                 plotOutput(outputId = "distCaPlot", width = "800px", height = "700px")
-
+                 tabsetPanel(
+                   tabPanel("Plot", plotOutput(outputId="distCaPlot", width = "800px", height = "700px")),
+                   tabPanel("Eigenvalues", tableOutput(outputId="caEigenTable")),
+                   tabPanel("Row",
+                            tags$h2("Contribution", style="margin-top:25px;"),
+                            DT::dataTableOutput("rowContrib"),
+                            tags$h2("Cosine", style="margin-top:25px;"),
+                            DT::dataTableOutput("rowCos2"),
+                            tags$h2("Coordinate", style="margin-top:25px;"),
+                            DT::dataTableOutput("rowCoord")),
+                   tabPanel("Column",
+                            tags$h2("Contribution", style="margin-top:25px;"),
+                            DT::dataTableOutput("colContrib"),
+                            tags$h2("Cosine", style="margin-top:25px;"),
+                            DT::dataTableOutput("colCos2"),
+                            tags$h2("Coordinate", style="margin-top:25px;"),
+                            DT::dataTableOutput("colCoord"))
+                 )
                )
              )),
+    tabPanel("Raw Data",
+             titlePanel("Iris"),
+             DT::dataTableOutput("iris_data")
+             ),
     tabPanel("作者",
              titlePanel("作者資訊"),
              fluidRow(
@@ -115,6 +139,36 @@ server <- function(input, output, session) {
     update_pca_plot()
   })
 
+  output$rotationTable <- renderTable({
+    log.ir <- log(iris[, 1:4])
+    pca <- prcomp(log.ir, center=TRUE, scale.=TRUE)
+    df <- pca$rotation
+  }, rownames=TRUE, hover=TRUE, digits=5)
+
+  output$centerTable <- renderTable({
+    log.ir <- log(iris[, 1:4])
+    pca <- prcomp(log.ir, center=TRUE, scale.=TRUE)
+    df <- pca$center
+  }, rownames=TRUE, hover=TRUE, digits=5)
+
+  output$sdevTable <- renderTable({
+    log.ir <- log(iris[, 1:4])
+    pca <- prcomp(log.ir, center=TRUE, scale.=TRUE)
+    df <- pca$sdev
+  }, rownames=TRUE, hover=TRUE, digits=5)
+
+  output$scaleTable <- renderTable({
+    log.ir <- log(iris[, 1:4])
+    pca <- prcomp(log.ir, center=TRUE, scale.=TRUE)
+    df <- pca$scale
+  }, rownames=TRUE, hover=TRUE, digits=5)
+
+  output$xTable <- DT::renderDataTable({
+    log.ir <- log(iris[, 1:4])
+    pca <- prcomp(log.ir, center=TRUE, scale.=TRUE)
+    df <- round(pca$x, 5)
+  }, rownames=TRUE)
+
   observeEvent(input$pca_x_radio, {
     if(input$pca_x_radio == cur_y_axis) {
       updateRadioButtons(session, "pca_y_radio", selected = cur_x_axis)
@@ -160,9 +214,47 @@ server <- function(input, output, session) {
     return(p2)
   }
 
+  update_ca_table <- function() {
+    res.ca <- CA(subset(iris[1:input$point_num, 1:4]))
+    output$caEigenTable <- renderTable({
+      df <- res.ca$eig
+    }, rownames=TRUE, hover=TRUE, digits=5)
+
+    output$rowContrib <- DT::renderDataTable({
+      df <- round(res.ca$row$contrib, 5)
+    }, rownames=TRUE)
+
+    output$rowCoord <- DT::renderDataTable({
+      df <- round(res.ca$row$coord, 5)
+    }, rownames=TRUE)
+
+    output$rowCos2 <- DT::renderDataTable({
+      df <- round(res.ca$row$cos2, 5)
+    }, rownames=TRUE)
+
+    output$colContrib <- DT::renderDataTable({
+      df <- round(res.ca$col$contrib, 5)
+    }, rownames=TRUE)
+
+    output$colCoord <- DT::renderDataTable({
+      df <- round(res.ca$col$coord, 5)
+    }, rownames=TRUE)
+
+    output$colCos2 <- DT::renderDataTable({
+      df <- round(res.ca$col$cos2, 5)
+    }, rownames=TRUE)
+  }
   output$distCaPlot <- renderPlot({
     update_ca_plot()
   })
+  observeEvent(input$point_num, {
+    update_ca_table()
+  })
+
+  ## Raw data
+  output$iris_data <- DT::renderDataTable({
+    df <- iris
+  }, rownames=TRUE)
 }
 
 # Create Shiny app ----
