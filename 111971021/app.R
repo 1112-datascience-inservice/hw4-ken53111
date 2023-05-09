@@ -6,8 +6,11 @@ library(factoextra)
 library(gridExtra)
 library(DT)
 
+data(iris)
+
 cur_x_axis <- "pc1"
 cur_y_axis <- "pc2"
+ca_point_num <- nrow(iris)
 
 # Define UI for app that draws a histogram ----
 ui <- fluidPage(
@@ -53,6 +56,7 @@ ui <- fluidPage(
                              min = 6,
                              max = nrow(iris),
                              value = nrow(iris)),
+                 checkboxInput("ca_random", "random(Resampling when dragging the slider)", value=FALSE),
                  checkboxInput("show_ca_arrow", "show arrows", value=FALSE),
                  checkboxInput("show_ca_point", "show points", value=TRUE),
                  checkboxInput("show_ca_number", "show numbers", value=TRUE)
@@ -97,8 +101,6 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram ----
 server <- function(input, output, session) {
-  data(iris)
-
   ## PCA
   update_pca_plot <- function() {
     log.ir <- log(iris[, 1:4])
@@ -192,7 +194,7 @@ server <- function(input, output, session) {
   })
 
   ## CA
-  update_ca_plot <- function() {
+  update_ca_plot <- function(sampled_data) {
     if (input$show_ca_point == TRUE) {
       alpha <- 1
     } else {
@@ -209,13 +211,13 @@ server <- function(input, output, session) {
       geom <- c("point")
     }
 
-    res.ca <- CA(subset(iris[1:input$point_num, 1:4]))
+    res.ca <- CA(sampled_data)
     p2 <- fviz_ca_biplot(res.ca, repel=TRUE, alpha=alpha, geom=geom, arrows=arrows, title="")
     return(p2)
   }
 
-  update_ca_table <- function() {
-    res.ca <- CA(subset(iris[1:input$point_num, 1:4]))
+  update_ca_table <- function(sampled_data) {
+    res.ca <- CA(sampled_data)
     output$caEigenTable <- renderTable({
       df <- res.ca$eig
     }, rownames=TRUE, hover=TRUE, digits=5)
@@ -248,7 +250,18 @@ server <- function(input, output, session) {
     update_ca_plot()
   })
   observeEvent(input$point_num, {
-    update_ca_table()
+    sampled_data <- subset(iris[1:ca_point_num, 1:4])
+    if (input$point_num != ca_point_num) {
+      if (input$ca_random == TRUE) {
+        sampled_data <- subset(iris[sample(nrow(iris), input$point_num), 1:4])
+      } else {
+        sampled_data <- subset(iris[1:input$point_num, 1:4])
+      }
+    }
+    update_ca_table(sampled_data)
+    output$distCaPlot <- renderPlot({
+      update_ca_plot(sampled_data)
+    })
   })
 
   ## Raw data
